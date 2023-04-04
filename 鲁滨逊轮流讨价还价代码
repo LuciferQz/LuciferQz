@@ -1,0 +1,77 @@
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+# 报价轮次
+N = 20
+
+# 购电方的初始报价
+p1 = 280
+
+#购电方上限值
+limit1 = 350
+
+# 售电方的初始报价
+p2 = 350
+
+#售电方下限值
+limit2 = 300
+
+# 购电方的贴现因子
+def discount1(offers1,offers2, n):
+    if len(offers1) < 3:
+        return (n / N) **2
+    else:
+        return  (n / N) **(2*(offers1[-1] / p1 + offers2[-1] /offers2[-2]) )
+
+# 售电方的贴现因子  
+def discount2(offers1,offers2, n):
+    if len(offers2) < 3:
+        return (n / N) **2
+    else:
+        return (n / N) **(2*(p2 / offers2[-1] + offers1[-2] /offers1[-1]) )
+
+# 购电方的报价函数
+def offer1(offers1,offers2, n):
+    if len(offers1) == 0:
+        return p1
+    else:
+        return offers1[-1] + discount1(offers1,offers2, n) * (limit1 - offers1[-1])
+
+# 售电方的报价函数
+def offer2(offers1,offers2, n):
+    if len(offers2) == 0:
+        return p2
+    else:
+        return offers2[-1] - discount2(offers1,offers2, n) * (offers2[-1]-limit2)
+
+# 初始化报价列表
+offers1 = []
+offers2 = []
+
+# 进行鲁宾斯轮流讨价还价博弈
+for i in range(N):
+    if i % 2 == 0:
+        offers1.append(offer1(offers1,offers2, i))
+        offers2.append(offer2(offers1,offers2, i))
+    else:
+        offers2.append(offer2(offers1,offers2, i))
+        offers1.append(offer1(offers1,offers2, i))
+    
+# 输出最终成交价格
+print("最终成交价格为:", (offers1[-1] + offers2[-1]) / 2)
+
+# 输出报价折线图
+plt.rcParams['figure.dpi'] = 1000
+plt.rcParams['font.sans-serif'] = ['SimSun']
+plt.plot(np.arange(1, N+1), offers1, label='购电商',marker='s',linewidth=1,markersize=2)
+plt.plot(np.arange(1, N+1), offers2, label='售电商',marker='s',linewidth=1,markersize=2)
+# plt.scatter(np.arange(1, N+1), offers1, s=5,marker='s')
+# plt.scatter(np.arange(1, N+1), offers2, s=5,marker='s')
+plt.legend()
+plt.xlim(1, 20)
+plt.xlabel('报价轮次')
+plt.ylabel('电力价格（yuan/MWh）')
+plt.yticks(fontproperties = 'Times New Roman')
+plt.xticks(np.linspace(1,20,20,endpoint=True),fontproperties = 'Times New Roman')
+plt.show()
