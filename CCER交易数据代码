@@ -1,0 +1,36 @@
+
+import requests
+from bs4 import BeautifulSoup
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
+
+# 打开Excel文件
+filename = "C:/Users/Zz/Desktop/urls.xlsx"
+workbook = load_workbook(filename)
+ws = workbook.active
+
+# 遍历每个要查询的URL
+for row in ws.iter_rows(min_row=2):
+    url = row[0].value
+    res = requests.get(url)
+    soup = BeautifulSoup(res.text, 'html.parser')
+
+    # 获取第二个表格
+    table = soup.find_all('table')[0]
+
+    # 将表头写入Excel文件
+    if ws.max_row == 1:
+        for i, th in enumerate(table.find_all('th')):
+            column = get_column_letter(i+1)
+            ws[column + '1'] = th.text
+
+    # 将表格内容写入Excel文件
+    for i, tr in enumerate(table.find_all('tr')[1:]):
+        row_index = ws.max_row + 1
+        for j, td in enumerate(tr.find_all('td')):
+            column = get_column_letter(j+1)
+            ws[column + str(row_index)] = td.text
+
+# 保存Excel文件
+workbook.save('查询结果.xlsx')
+print('查询结果已保存至查询结果.xlsx')
