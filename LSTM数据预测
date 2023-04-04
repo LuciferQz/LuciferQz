@@ -1,6 +1,13 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+from keras.models import Sequential
+from keras.layers import LSTM, Dense
+
 
 # 读取 Excel 文件
-df = pd.read_excel(r'C:/Users/Zz/Desktop/lvzheng.xlsx')
+df = pd.read_excel(r'C:/Users/Zz/Desktop/carbon_price_data.xlsx')
 
 # 将日期列设为索引
 df.set_index('Date', inplace=True)
@@ -53,14 +60,6 @@ plt.plot(df.index[train_size+window_size:],predictions, label='Predictions')
 plt.plot(df.index[train_size+window_size:],scaler.inverse_transform(y_test), label='Actual')
 plt.legend()
 plt.show()
-
-# 记录预测值和实际值
-predictions_df = pd.DataFrame(predictions, index=df.index[train_size+window_size:], columns=['Predictions'])
-actual_df = pd.DataFrame(scaler.inverse_transform(y_test), index=df.index[train_size+window_size:], columns=['Actual'])
-
-# 将预测值和实际值保存到 Excel 文件中
-result_df = pd.concat([predictions_df, actual_df], axis=1)
-result_df.to_excel(r'C:/Users/Zz/Desktop/result3.xlsx', index=True)
 
 # 训练模型并记录历史损失数据
 history = model.fit(X_train, y_train, batch_size=64, epochs=50, verbose=0)
