@@ -1,0 +1,65 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Apr  6 10:44:41 2023
+
+@author: Zz
+"""
+
+import pandas as pd
+import numpy as np
+from openpyxl import load_workbook
+from datetime import datetime
+
+# 读取Excel文件
+wb = load_workbook(filename='C:/Users/Zz/Desktop/trading_data1.xlsx', read_only=True)
+market_sheet = wb['Market Data']
+holding_sheet = wb['Holding Data']
+
+# 读取市场价格和市场交易量数据
+market_data = pd.DataFrame(market_sheet.values)
+market_data.columns = market_data.iloc[0]
+market_data = market_data.iloc[1:]
+market_data = market_data.set_index('Date')
+market_data.index = pd.to_datetime(market_data.index)
+
+# 读取月初持有量数据
+holding_data = pd.DataFrame(holding_sheet.values)
+holding_data.columns = holding_data.iloc[0]
+holding_data = holding_data.iloc[1:]
+holding_data = holding_data.set_index('Date')
+holding_data.index = pd.to_datetime(holding_data.index)
+
+# 设置初始参数
+start_date = datetime(2021, 1, 1)
+end_date = datetime(2021, 9, 30)
+holding = 10000
+trade_count = 4
+
+# 循环进行月度交易决策
+for i in range((end_date.year - start_date.year) * 12 + (end_date.month - start_date.month) + 1):
+    # 计算每月的市场价格和市场交易量均值
+    month_data = market_data.loc[(market_data.index.year == start_date.year) & (market_data.index.month == start_date.month)]
+    price_mean = month_data['Price'].mean()
+    volume_mean = month_data['Volume'].mean()
+
+    # 计算可供交易的数量
+    available_holding = holding // trade_count
+
+    # 判断是否应该进行交易
+    if available_holding > 0 and month_data.iloc[-1]['Price'] > price_mean and month_data.iloc[-1]['Volume'] > volume_mean:
+        # 计算每次交易的交易量和交易价格
+        trade_volume = available_holding
+        trade_price = month_data.iloc[-1]['Price'] * np.random.normal(1, 0.05)
+
+        # 更新持仓数量
+        holding += trade_volume
+
+        # 输出交易信息
+        print(f'Trade {i+1}: Volume - {trade_volume}, Price - {trade_price:.2f}')
+
+    # 更新日期
+    start_date = start_date.replace(day=1)
+    if start_date.month == 12:
+        start_date = start_date.replace(year=start_date.year+1, month=1)
+    else:
+        start_date = start_date.replace(month=start_date.month+1)
