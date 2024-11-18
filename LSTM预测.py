@@ -1,0 +1,80 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+from keras.models import Sequential
+from keras.layers import LSTM, Dense
+
+
+# 读取 Excel 文件
+df = pd.read_excel(r'C:/Users/Zz/Desktop/carbon_price_data.xlsx')
+
+# 将日期列设为索引
+df.set_index('Date', inplace=True)
+
+# 将数据进行归一化处理
+scaler = MinMaxScaler()
+scaled_data = scaler.fit_transform(df)
+
+# 将数据集分为训练集和测试集
+train_size = int(len(scaled_data) * 0.8)
+train_data = scaled_data[:train_size]
+test_data = scaled_data[train_size:]
+
+# 定义时间窗口大小
+window_size = 25
+
+# 将数据集转换为时间序列数据
+def create_time_series(data, window_size):
+    X = []
+    y = []
+    for i in range(window_size, len(data)):
+        X.append(data[i-window_size:i])
+        y.append(data[i])
+    X, y = np.array(X), np.array(y)
+    return X, y
+
+X_train, y_train = create_time_series(train_data, window_size)
+X_test, y_test = create_time_series(test_data, window_size)
+
+# 构建 LSTM 模型
+model = Sequential()
+model.add(LSTM(50, return_sequences=True, input_shape=(window_size, 1)))
+model.add(LSTM(50, return_sequences=False))
+model.add(Dense(25))
+model.add(Dense(1))
+
+# 编译模型
+model.compile(optimizer='adam', loss='mean_squared_error')
+
+# 训练模型
+model.fit(X_train, y_train, batch_size=64, epochs=50)
+
+# 使用测试集进行预测
+predictions = model.predict(X_test)
+predictions = scaler.inverse_transform(predictions)
+
+# 绘制预测结果和实际结果的对比图
+plt.figure(figsize=(16,8))
+plt.plot(df.index[train_size+window_size:],predictions, label='Predictions')
+plt.plot(df.index[train_size+window_size:],scaler.inverse_transform(y_test), label='Actual')
+plt.legend()
+plt.show()
+
+# 记录预测值和实际值
+predictions_df = pd.DataFrame(predictions, index=df.index[train_size+window_size:], columns=['Predictions'])
+actual_df = pd.DataFrame(scaler.inverse_transform(y_test), index=df.index[train_size+window_size:], columns=['Actual'])
+
+# 将预测值和实际值保存到 Excel 文件中
+result_df = pd.concat([predictions_df, actual_df], axis=1)
+result_df.to_excel(r'C:/Users/Zz/Desktop/result.xlsx', index=True)
+
+# 训练模型并记录历史损失数据
+history = model.fit(X_train, y_train, batch_size=64, epochs=50, verbose=0)
+
+# 绘制损失图
+plt.plot(history.history['loss'])
+plt.title('Model Loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.show()
